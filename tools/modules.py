@@ -1882,7 +1882,7 @@ class Adversarial_scenario_manager:
             s = ego_s + col * 10 - 20  # -20 bc ego is on second column
             d = lane * self.LANE_WIDTH
             targetSpeed = random.uniform(self.min_speed, self.max_speed)  # m/s
-            data = xlrd.open_workbook(os.path.abspath('.') + '/tools/obs_velocity_profile.xlsx')
+            data = xlrd.open_workbook(os.path.abspath('') + '/tools/obs_velocity_profile.xlsx')
             table = data.sheets()[0]
             # velocity_curve = table.row_values(0)
             velocity_curve_0 = table.row_values(0)
@@ -2175,7 +2175,16 @@ class LanechangeControl:
         self.max_speed = float(cfg.TRAFFIC_MANAGER.MAX_SPEED)
         self.velocity_curve = velocity_curve
 
+        try:
+            self.global_route = np.load(
+                'road_maps/global_route_town04.npy')  # track waypoints (center lane of the second lane from left)
+        except IOError:
+            self.global_route = None
+
         self.motionPlanner = MotionPlanner()
+        self.motionPlanner.start(self.global_route)
+        self.motionPlanner.reset(s, d, df_n=0, Tf=4, Vf_n=0, optimal_path=False)
+
         self.max_s = int(cfg.CARLA.MAX_S)
 
     def update_adv_action(self, action):

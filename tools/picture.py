@@ -26,7 +26,8 @@ def plot_data(rec_num, name_1="mpc", name_2="u", name_3="s_ahead"):
         if isinstance(rec_num, int):
 
             record_num = 'data_record_no_' + str(rec_num)
-            d1 = pd.read_csv(os.path.abspath('..') + "/datas/plot_data_record/" + record_num + '/mpc_data_record.csv')
+            d1 = pd.read_csv(os.path.abspath(
+                '../Closed-loop-self-learning-OS_branch') + "/datas/plot_data_record/" + record_num + '/mpc_data_record.csv')
 
             u = d1.u.values
             cur_acc = d1.Cur_acc.values
@@ -63,8 +64,10 @@ def plot_data(rec_num, name_1="mpc", name_2="u", name_3="s_ahead"):
 
             record_num_1 = 'data_record_no_' + str(rec_num[0])
             record_num_2 = 'data_record_no_' + str(rec_num[1])
-            d1 = pd.read_csv(os.path.abspath('..') + "/datas/plot_data_record/" + record_num_1 + '/mpc_data_record.csv')
-            d2 = pd.read_csv(os.path.abspath('..') + "/datas/plot_data_record/" + record_num_2 + '/mpc_data_record.csv')
+            d1 = pd.read_csv(os.path.abspath(
+                '../Closed-loop-self-learning-OS_branch') + "/datas/plot_data_record/" + record_num_1 + '/mpc_data_record.csv')
+            d2 = pd.read_csv(os.path.abspath(
+                '../Closed-loop-self-learning-OS_branch') + "/datas/plot_data_record/" + record_num_2 + '/mpc_data_record.csv')
 
             u1 = eval("d1." + name_2 + ".values")
             u2 = eval("d2." + name_2 + ".values")
@@ -82,7 +85,8 @@ def plot_data(rec_num, name_1="mpc", name_2="u", name_3="s_ahead"):
 
             record_num = 'data_record_no_' + str(rec_num)
             d1 = pd.read_csv(
-                os.path.abspath('..') + "/datas/plot_data_record/" + record_num + '/vehicle_info_record.csv')
+                os.path.abspath(
+                    '../Closed-loop-self-learning-OS_branch') + "/datas/plot_data_record/" + record_num + '/vehicle_info_record.csv')
 
             vs = d1.vs.values
             vs_cmd = d1.vs_cmd
@@ -105,9 +109,11 @@ def plot_data(rec_num, name_1="mpc", name_2="u", name_3="s_ahead"):
             record_num_1 = 'data_record_no_' + str(rec_num[0])
             record_num_2 = 'data_record_no_' + str(rec_num[1])
             d1 = pd.read_csv(
-                os.path.abspath('..') + "/datas/plot_data_record/" + record_num_1 + '/vehicle_info_record.csv')
+                os.path.abspath(
+                    '../Closed-loop-self-learning-OS_branch') + "/datas/plot_data_record/" + record_num_1 + '/vehicle_info_record.csv')
             d2 = pd.read_csv(
-                os.path.abspath('..') + "/datas/plot_data_record/" + record_num_2 + '/vehicle_info_record.csv')
+                os.path.abspath(
+                    '../Closed-loop-self-learning-OS_branch') + "/datas/plot_data_record/" + record_num_2 + '/vehicle_info_record.csv')
 
             u1 = eval("d1." + name_2 + ".values")
             u2 = eval("d2." + name_2 + ".values")
@@ -125,7 +131,8 @@ def plot_data(rec_num, name_1="mpc", name_2="u", name_3="s_ahead"):
 
             record_num = 'data_record_no_' + str(rec_num)
             d1 = pd.read_csv(
-                os.path.abspath('..') + "/datas/plot_data_record/" + record_num + '/vehicle_info_2_v_record.csv')
+                os.path.abspath(
+                    '../Closed-loop-self-learning-OS_branch') + "/datas/plot_data_record/" + record_num + '/vehicle_info_2_v_record.csv')
 
             ego_s = d1.ego_s.values
             s_ahead = d1.s_ahead
@@ -148,9 +155,11 @@ def plot_data(rec_num, name_1="mpc", name_2="u", name_3="s_ahead"):
             record_num_1 = 'data_record_no_' + str(rec_num[0])
             record_num_2 = 'data_record_no_' + str(rec_num[1])
             d1 = pd.read_csv(
-                os.path.abspath('..') + "/datas/plot_data_record/" + record_num_1 + '/vehicle_info_2_v_record.csv')
+                os.path.abspath(
+                    '../Closed-loop-self-learning-OS_branch') + "/datas/plot_data_record/" + record_num_1 + '/vehicle_info_2_v_record.csv')
             d2 = pd.read_csv(
-                os.path.abspath('..') + "/datas/plot_data_record/" + record_num_2 + '/vehicle_info_2_v_record.csv')
+                os.path.abspath(
+                    '../Closed-loop-self-learning-OS_branch') + "/datas/plot_data_record/" + record_num_2 + '/vehicle_info_2_v_record.csv')
 
             u11 = eval("d1." + name_2 + ".values")
             u12 = eval("d1." + name_3 + ".values")

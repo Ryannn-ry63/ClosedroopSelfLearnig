@@ -60,7 +60,7 @@ if __name__ == '__main__':
 
     else:
 
-        train_name = 'train_158'
+        train_name = 'train_1' ###
         con_learning_flag = False
         # 标志位置False表示不进行闭环学习，可以直接切换model进行eval或train
         SAC_cfg = SACConfig('self-learning', train_name, con_learning_flag)

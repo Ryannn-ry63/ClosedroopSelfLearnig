@@ -26,7 +26,7 @@ class data_collection:
         self.vehicle_info_record = pd.DataFrame(columns=('vs', 'vs_cmd', 'throttle'))
         self.obs_info_record = pd.DataFrame(columns=('ego_s', 'Ds', 'vs', 'Dv'))
 
-        self.directory_path = self.mkdir(os.path.abspath('.') + '/datas/plot_data_record/data_record_no_1')
+        self.directory_path = self.mkdir(os.path.abspath('') + '/datas/plot_data_record/data_record_no_1')
         self.file_name_1 = 'control_info_record.csv'
         self.file_name_2 = 'vehicle_info_record.csv'
         self.file_name_3 = 'obs_info_record.csv'
