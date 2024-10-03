@@ -1,0 +1,12 @@
+cloudpickle
+easydict
+gym
+matplotlib
+numpy
+pandas
+pygame
+PyYAML
+scipy
+setuptools
+stable_baselines3
+xlrd
