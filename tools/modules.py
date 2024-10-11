@@ -1807,7 +1807,7 @@ class Adversarial_scenario_manager:
             # keep actors and sensors to destroy them when an episode is finished
             cruiseControl = CruiseControl(otherActor, los_sensor, s, d, lane, self.module_manager,
                                           targetSpeed=targetSpeed, velocity_curve=velocity_curve)
-            lanechangeControl = LanechangeControl(otherActor, los_sensor, s, d, lane, self.module_manager,
+            lanechangeControl = LaneChangeControl(otherActor, los_sensor, s, d, lane, self.module_manager,
                                           targetSpeed=targetSpeed, velocity_curve=velocity_curve)
             deq_s = deque([s], maxlen=50)
 
@@ -1898,7 +1898,7 @@ class Adversarial_scenario_manager:
     def tick(self):
 
         for actor_dic in self.actors_batch:
-            control = actor_dic['Cruise Control']
+            # control = actor_dic['Cruise Control']
             control = actor_dic['Lane Change Control']
             control.update_adv_action(self.adv_action)
             # control.update_state_input()
@@ -1907,7 +1907,12 @@ class Adversarial_scenario_manager:
             s = self.estimate_s(control.s, state[0], state[1], state[-2])
 
             d = update_d(s, state[0], state[1], self.global_csp)
-
+            ########################
+            ego_s = self.obj_input[2]
+            delta_s = s - ego_s
+            if actor_dic == self.actors_batch[1]:
+                control.update_dfn(delta_s)
+            ###############################
             v_S, v_D = velocity_inertial_to_frenet(s, state[-1].x, state[-1].y, self.global_csp)
             psi_Frenet = get_obj_S_yaw(state[-2], s, self.global_csp)
             abs_acc = state[4]
@@ -2143,19 +2148,25 @@ class CruiseControl:
         return [self.location.x, self.location.y, self.location.z, self.speed, self.acceleration, self.yaw,
                 self.velocity]
 
-class LanechangeControl:
+class LaneChangeControl:
+
     def __init__(self, vehicle, los_sensor, s, d, lane, module_manager, targetSpeed=50 / 3.6, velocity_curve=None):
-        self.adv_action = 0.5
+
+        self.lanechange = None
+        self.acc_abs = None
+        self.f_idx = 0
+        self.adv_action = [2,0]
+        self.acc_last = 3
         self.vehicle = vehicle  # Carla instance for the vehicle
         self.id = self.vehicle.id
         self.s = s
         self.d = d  # in lane change maneuver, d isn't a constant
         self.lane = lane
         self.module_manager = module_manager
-        # self.targetSpeed = targetSpeed
         self.world = self.module_manager.get_module(MODULE_WORLD)
         self.steps = 0
         self.targetSpeed = targetSpeed
+
         if float(cfg.CARLA.DT) > 0:  # delta time
             self.dt = float(cfg.CARLA.DT)
         else:
@@ -2171,8 +2182,8 @@ class LanechangeControl:
         self.acceleration = 0
         self.yaw = math.radians(self.vehicle.get_transform().rotation.yaw)
         self.LANE_WIDTH = float(cfg.CARLA.LANE_WIDTH)
-        self.min_speed = float(cfg.TRAFFIC_MANAGER.MIN_SPEED)
-        self.max_speed = float(cfg.TRAFFIC_MANAGER.MAX_SPEED)
+        self.max_speed = 22
+        self.max_s = int(cfg.CARLA.MAX_S)
         self.velocity_curve = velocity_curve
 
         try:
@@ -2183,9 +2194,11 @@ class LanechangeControl:
 
         self.motionPlanner = MotionPlanner()
         self.motionPlanner.start(self.global_route)
-        self.motionPlanner.reset(s, d, df_n=0, Tf=4, Vf_n=0, optimal_path=False)
+        self.motionPlanner.reset(s, d, df_n=0, Tf=1.2, Vf_n=0, optimal_path=False)
 
-        self.max_s = int(cfg.CARLA.MAX_S)
+        self.df_n = lane * 3.5
+        self.flag1 = False
+        self.flag2 = False
 
     def update_adv_action(self, action):
         self.adv_action = action
@@ -2196,54 +2209,62 @@ class LanechangeControl:
     def update_d(self, d):
         self.d = d
 
-    def tick(self):  # 更新实现车辆变化
+    def update_dfn(self, delta_s):
+
+        if delta_s >= 7.3 : #达到切入条件
+            self.df_n = 0.0
+            self.flag1 = True
+        # if self.flag1:
+        #     self.df_n = self.adv_action[1]
+        # else:
+        #     self.df_n = self.lane * 3.5
+
+    def tick(self):
+
+        temp = [self.vehicle.get_velocity(), self.vehicle.get_acceleration()]
+        speed_ = self.speed  # speed in previous tick
+        acc_vec = self.vehicle.get_acceleration()
+        acc = math.sqrt(acc_vec.x ** 2 + acc_vec.y ** 2 + acc_vec.z ** 2)
+        self.acc_abs = math.sqrt(acc_vec.x ** 2 + acc_vec.y ** 2)
+        psi = math.radians(self.vehicle.get_transform().rotation.yaw)  # 弧度
+        vehicle_state = [self.vehicle.get_location().x, self.vehicle.get_location().y, speed_, acc, psi, temp,
+                         self.max_s]
+        fpath, self.lanechange, off_the_road = self.motionPlanner.run_step_single_path(vehicle_state, self.f_idx,
+                                                                                       self.df_n, Tf=1.2,
+                                                                                       Vf_n = 22)
+
+        direct_x = self.vehicle.get_transform().get_forward_vector().x
+        direct_y = self.vehicle.get_transform().get_forward_vector().y
+        normal_dir_x = direct_x / math.sqrt(direct_x ** 2 + direct_y ** 2)
+        normal_dir_y = direct_y / math.sqrt(direct_x ** 2 + direct_y ** 2)
+        act_acc = acc_vec.x * normal_dir_x + acc_vec.y * normal_dir_y
 
         self.f_idx = 1
 
-
-        temp = [self.vehicle.get_velocity(), self.vehicle.get_acceleration()]
-        speed = get_speed(self.vehicle)
-        acc_vec = self.vehicle.get_acceleration()
-        acc = math.sqrt(acc_vec.x ** 2 + acc_vec.y ** 2 + acc_vec.z ** 2)
-        psi = math.radians(self.vehicle.get_transform().rotation.yaw)
-        vehicle_state = [self.vehicle.get_location().x, self.vehicle.get_location().y, speed, acc, psi, temp, self.max_s]
-        fpath, self.lanechange, off_the_road = self.motionPlanner.run_step_single_path(vehicle_state, self.f_idx,
-                                                                                       df_n=7, Tf=5,
-                                                                                       Vf_n=0)
-        ego_init_d, ego_target_d = fpath.d[0], fpath.d[-1]
-
-        vx_vehicle = self.vehicle.get_velocity().x
-        vy_vehicle = self.vehicle.get_velocity().y
-        vehicle_s = self.motionPlanner.estimate_frenet_state(vehicle_state, self.f_idx)[0]  # estimated current ego_s
-        vehicle_d = fpath.d[self.f_idx]
-        v_S, v_D = velocity_inertial_to_frenet(vehicle_s, vx_vehicle, vy_vehicle, self.motionPlanner.csp)
-
         vehicle_state = [self.vehicle.get_location().x, self.vehicle.get_location().y,
-                     math.radians(self.vehicle.get_transform().rotation.yaw), 0, 0, temp, self.max_s]
+                         math.radians(self.vehicle.get_transform().rotation.yaw), 0, 0, temp, self.max_s]
 
         self.f_idx = closest_wp_idx(vehicle_state, fpath, self.f_idx)
 
-        #print(self.f_idx)
-        cmdWP = [fpath.x[self.f_idx], fpath.y[self.f_idx]]
-        cmdWP2 = [fpath.x[self.f_idx + 1], fpath.y[self.f_idx + 1]]
+        cmdWP = [fpath.x[self.f_idx], fpath.y[self.f_idx]] ###
+        cmdWP2 = [fpath.x[self.f_idx + 1], fpath.y[self.f_idx + 1]] ###
 
-        #self.df_ego = closest([self.LANE_WIDTH * lane_n for lane_n in range(-1, 3)], ego_d)
+        '''******   overwrite command speed    ******'''
+        cmdSpeed = 10
 
-        #direct_x = self.vehicle.get_transform().get_forward_vector().x
-        #direct_y = self.vehicle.get_transform().get_forward_vector().y
-        #normal_dir_x = direct_x / math.sqrt(direct_x ** 2 + direct_y ** 2)
-        #normal_dir_y = direct_y / math.sqrt(direct_x ** 2 + direct_y ** 2)
-        #act_acc = acc_vec.x * normal_dir_x + acc_vec.y * normal_dir_y
+        if cmdSpeed >= self.max_speed :
+            cmdSpeed = self.max_speed
 
-        '''******  speed control method 2******'''
-        cmdSpeed = 15
         control = self.vehicleController.run_step_2_wp(cmdSpeed, cmdWP, cmdWP2)  # calculate control()
-        '''****** acc control ******'''
-        #control = self.vehicleController.run_step_acc_2_wp(acc_input, act_acc, cmdWP,
-        #                                                  cmdWP2)  # calculate control
+        '''******   acc control    ******'''
+        # acc_input = self.adv_action[0]
+        # control = self.vehicleController.run_step_acc_2_wp(acc_input, act_acc, cmdWP,
+        #                                                    cmdWP2)  # calculate control
 
         self.vehicle.apply_control(control)  # apply control
-
         self.steps += 1
-        return [self.location.x, self.location.y, self.location.z, self.speed, self.acceleration, self.yaw,
+        self.velocity = self.vehicle.get_velocity()
+        self.acc_last = 0.5
+        return [self.vehicle.get_location().x, self.vehicle.get_location().y, self.vehicle.get_location().z, self.speed,
+                self.acc_last, psi,
                 self.velocity]
